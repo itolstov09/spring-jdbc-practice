@@ -33,7 +33,8 @@ public class DbRunner implements CommandLineRunner {
                         "Maria Grovoma",
                         "Oleg Amperov",
                         "Oleg Gazmanov",
-                        "Vasiliy Gazmanov"
+                        "Vasiliy Gazmanov",
+                        "Viktor Amperov"
                 )
                 .map(name -> name.split(" "))
                 .collect(Collectors.toList());
@@ -51,11 +52,11 @@ public class DbRunner implements CommandLineRunner {
         marias.forEach(maria -> log.info(maria.toString()));
 
         int customerId = 1;
-        String customerFirstName = findFirstNameByID(customerId);
+        String customerFirstNameWithId1 = findFirstNameByID(customerId);
         log.info(
                 String.format("Customer  with id %d first name is: %s",
                         customerId,
-                        customerFirstName) );
+                        customerFirstNameWithId1) );
 
         Integer customersCount = customersCount();
         log.info(String.format("Customers count is: %d", customersCount));
@@ -71,6 +72,73 @@ public class DbRunner implements CommandLineRunner {
 
         List<String> customersLastName = selectCustomersLastName();
         log.info(String.format("customersLastName: %s", customersLastName ));
+
+        updateFirstNameById("Ilya", 250);
+
+        updateFirstNameById("Mikhail", customerId);
+
+        int updatedRowsCount = fixRepoInLastName("Amperov", "Amperoff");
+        log.info(String.format("Fix repo in last_name \"Amperov\" to \"Amperoff\"\n %d rows updated", updatedRowsCount));
+
+        customerId = 4;
+        boolean userExists = isUserExists(customerId);
+        log.info(String.format("Customer with id %d exists: %s", customerId, userExists));
+
+
+        String customerFirstName = "Artem";
+        String customerLastName = "Tarasov";
+        insertCustomer(customerFirstName, customerLastName);
+
+
+        List<Customer> customers = getCustomers();
+        log.info("customers:");
+        customers.forEach(customer -> log.info("\t" + customer.toString()));
+
+        log.info(String.format("Delete customer with id %d", customerId));
+        deleteById(customerId);
+
+        List<Customer> customers1 = getCustomers();
+        log.info("customers after deleting row:");
+        customers1.forEach(customer -> log.info("\t" + customer.toString()));
+
+
+    }
+
+    private int fixRepoInLastName(String old, String new_) {
+        return jdbcTemplate.update("UPDATE customers SET last_name=? WHERE last_name=?", new_, old);
+    }
+
+    private void deleteById(int customerId) {
+        jdbcTemplate.update("DELETE FROM customers WHERE id=?", customerId);
+    }
+
+    private List<Customer> getCustomers() {
+        return jdbcTemplate.query("SELECT * FROM customers", new CustomerRowMapper());
+    }
+
+    private void insertCustomer(String customerFirstName, String customerLastName) {
+        jdbcTemplate.update("INSERT INTO customers(first_name, last_name)" +
+                        "VALUES(?,?)",
+                customerFirstName,
+                customerLastName
+        );
+    }
+
+    private void updateFirstNameById(String firstName, int customerId) {
+        log.info(String.format("Update customer with id %d", customerId));
+        int updatedRowsCount = jdbcTemplate.update(
+                "UPDATE customers SET first_name=? WHERE id=?",
+                firstName, customerId);
+        log.info(String.format("Rows updated: %d", updatedRowsCount));
+    }
+
+    private boolean isUserExists(int customerId) {
+        Integer customerCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM customers WHERE id=?",
+                Integer.class,
+                customerId
+        );
+        return customerCount > 0;
     }
 
     private List<String> selectCustomersLastName() {
@@ -88,6 +156,7 @@ public class DbRunner implements CommandLineRunner {
                 String.class,
                 customerId );
     }
+
 
 
 
